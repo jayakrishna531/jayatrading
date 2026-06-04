@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import time
+import requests
+import io
 
 def calculate_rsi(prices, period=14):
     """
@@ -53,7 +55,15 @@ def get_sp500_symbols():
         List of ticker symbols
     """
     # Fetch S&P 500 constituents from Wikipedia
-    tables = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+    url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    tables = pd.read_html(io.StringIO(response.text))
     df = tables[0]
     symbols = df['Symbol'].tolist()
     return symbols
@@ -81,9 +91,10 @@ def check_rsi_below_20(symbol, rsi_threshold=20):
             return None
         
         # Calculate RSI
-        rsi = calculate_rsi(data['Close'], period=14)
+        close_series = data['Close'].squeeze()
+        rsi = calculate_rsi(close_series, period=14)
         current_rsi = rsi.iloc[-1]
-        current_price = data['Close'].iloc[-1]
+        current_price = close_series.iloc[-1]
         
         # Check if RSI is below threshold
         if current_rsi < rsi_threshold:

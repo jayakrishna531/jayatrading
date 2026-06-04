@@ -63,7 +63,13 @@ def get_sp500_symbols():
     response = requests.get(url, headers=headers)
     response.raise_for_status()
 
-    tables = pd.read_html(io.StringIO(response.text))
+    try:
+        tables = pd.read_html(io.StringIO(response.text))
+    except ImportError:
+        print("\nError: Missing required dependency 'lxml' for reading HTML tables.")
+        print("Please install it by running: pip install lxml")
+        return []
+
     df = tables[0]
     symbols = df['Symbol'].tolist()
     return symbols
